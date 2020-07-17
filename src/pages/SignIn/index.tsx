@@ -4,13 +4,15 @@ import { FormHandles } from '@unform/core';
 import { Form } from '@unform/web';
 import * as Yup from 'yup';
 
+import { useToast } from '../../hooks/toast';
+import { useAuth } from '../../hooks/auth';
+
+import getValidationError from '../../utils/getValidationError';
+
 import logoImg from '../../assets/logo.svg';
 
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import getValidationError from '../../utils/getValidationError';
-
-import { useAuth } from '../../hooks/Auth';
 
 import { Container, Content, Background } from './styles';
 
@@ -23,6 +25,7 @@ const SignIn: React.FC = () => {
   const formRef = useRef<FormHandles>(null);
 
   const { signIn } = useAuth();
+  const { addToast } = useToast();
 
   const handleSubmit = useCallback(
     async (data: SignInFormData) => {
@@ -37,16 +40,24 @@ const SignIn: React.FC = () => {
 
         await shemaValidation.validate(data, { abortEarly: false });
 
-        signIn({
+        await signIn({
           email: data.email,
           password: data.password,
         });
       } catch (error) {
-        const validationErrors = getValidationError(error);
-        formRef.current?.setErrors(validationErrors);
+        if (error instanceof Yup.ValidationError) {
+          const validationErrors = getValidationError(error);
+          formRef.current?.setErrors(validationErrors);
+        }
+
+        addToast({
+          title: 'Erro na autenticação',
+          type: 'error',
+          description: 'Ocorreu um erro ao fazer login, cheque as credencias.',
+        });
       }
     },
-    [signIn],
+    [signIn, addToast],
   );
 
   return (
